@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --color-ink: 15 23 42;
+  --color-surface: 247 248 250;
+  --color-card: 255 255 255;
+  --color-line: 228 231 236;
+  --color-muted: 102 112 133;
+  --color-primary: 14 122 87;
+  --color-primary-light: 228 243 236;
+  --color-primary-dark: 10 92 65;
+  --color-expense: 192 57 43;
+  --color-expense-light: 251 234 232;
+  --color-invest: 43 95 192;
+  --color-invest-light: 232 238 251;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-ink: 236 240 246;
+  --color-surface: 13 16 23;
+  --color-card: 22 26 36;
+  --color-line: 46 52 66;
+  --color-muted: 148 158 176;
+  --color-primary: 52 168 128;
+  --color-primary-light: 20 51 42;
+  --color-primary-dark: 134 224 190;
+  --color-expense: 240 105 92;
+  --color-expense-light: 61 28 26;
+  --color-invest: 110 152 240;
+  --color-invest-light: 27 37 58;
+}
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background-color: rgb(var(--color-surface));
+  transition: background-color 0.15s ease;
+}
+
+.font-display {
+  font-family: "Sora", system-ui, sans-serif;
+}
