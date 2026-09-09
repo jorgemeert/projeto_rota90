@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Repeat } from "lucide-react";
+import { Repeat, CheckCircle2, Circle } from "lucide-react";
 import TopBar from "../components/TopBar";
 import FlowSummaryCard from "../components/FlowSummaryCard";
 import IncomeCard from "../components/IncomeCard";
@@ -138,6 +138,19 @@ export default function OrcamentoPage({ onOpenSidebar }) {
                   }}
                   onRemove={handleRemove}
                   valueColorClass="text-expense"
+                  renderExtraAction={activeTab === "despesa-fixa" ? (item) => {
+                    const paid = Boolean(item.paidPeriods?.[period]);
+                    return (
+                      <button
+                        onClick={() => dispatch({ type: "TOGGLE_FIXED_EXPENSE_PAID", payload: { id: item.id, period } })}
+                        className={`flex items-center gap-1 text-xs ${paid ? "text-primary" : "text-muted hover:text-primary"}`}
+                        title={paid ? "Marcar como não pago" : "Marcar como pago"}
+                      >
+                        {paid ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+                        <span className="hidden sm:inline">{paid ? "Pago" : "Pagar"}</span>
+                      </button>
+                    );
+                  } : undefined}
                   renderMeta={
                     activeTab === "despesa-fixa"
                       ? renderFixedMeta
