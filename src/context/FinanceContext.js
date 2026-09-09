@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from "react";
 import { currentPeriod, monthsBetween } from "../utils/period";
-import { computeMonthlySalary } from "../utils/salary";
+import { computeMonthlySalary, getEntryNet } from "../utils/salary";
 
 const FinanceContext = createContext(null);
 
@@ -29,7 +29,9 @@ const initialState = {
     daysPerWeek: 5,
     hourlyRate: 0,
     hoursPerWeek: 40,
-    startPeriod: null
+    startPeriod: null,
+    variableFrequency: "diaria", // "diaria" | "semanal" | "mensal"
+    useCostCalculator: false
   },
   // Despesas variáveis (avulsas, uma por período): { id, description, value, categoryId, dueDate }
   expenses: [],
@@ -55,7 +57,7 @@ function loadInitialState(userKey) {
       ...saved,
       incomeByPeriod: { ...(saved.incomeByPeriod || {}) },
       salaryConfig: { ...initialState.salaryConfig, ...(saved.salaryConfig || {}) },
-      fixedExpenses: saved.fixedExpenses || [],
+      fixedExpenses: (saved.fixedExpenses || []).map((e) => ({ ...e, paidPeriods: e.paidPeriods || {} })),
       allocations: { ...initialState.allocations, ...(saved.allocations || {}) }
     };
   } catch (err) {
@@ -68,7 +70,7 @@ function reducer(state, action) {
   switch (action.type) {
     case "SET_INCOME_FIELD": {
       const { period, field, value } = action.payload;
-      const current = state.incomeByPeriod[period] || { salary: 0, extraIncome: 0 };
+      const current = state.incomeByPeriod[period] || { salary: 0, extraIncome: 0, salaryEntries: [] };
       return {
         ...state,
         incomeByPeriod: { ...state.incomeByPeriod, [period]: { ...current, [field]: value } }
@@ -77,6 +79,47 @@ function reducer(state, action) {
 
     case "SET_SALARY_CONFIG":
       return { ...state, salaryConfig: { ...state.salaryConfig, ...action.payload } };
+
+    case "ADD_SALARY_ENTRY": {
+      const { period, entry } = action.payload;
+      const current = state.incomeByPeriod[period] || { salary: 0, extraIncome: 0, salaryEntries: [] };
+      const entries = Array.isArray(current.salaryEntries) ? current.salaryEntries : [];
+      return {
+        ...state,
+        incomeByPeriod: {
+          ...state.incomeByPeriod,
+          [period]: { ...current, salaryEntries: [...entries, { id: uid(), ...entry }] }
+        }
+      };
+    }
+
+    case "REMOVE_SALARY_ENTRY": {
+      const { period, id } = action.payload;
+      const current = state.incomeByPeriod[period] || { salary: 0, extraIncome: 0, salaryEntries: [] };
+      return {
+        ...state,
+        incomeByPeriod: {
+          ...state.incomeByPeriod,
+          [period]: {
+            ...current,
+            salaryEntries: (current.salaryEntries || []).filter((entry) => entry.id !== id)
+          }
+        }
+      };
+    }
+
+    case "TOGGLE_FIXED_EXPENSE_PAID": {
+      const { id, period } = action.payload;
+      return {
+        ...state,
+        fixedExpenses: state.fixedExpenses.map((expense) => {
+          if (expense.id !== id) return expense;
+          const paidPeriods = { ...(expense.paidPeriods || {}) };
+          paidPeriods[period] = !paidPeriods[period];
+          return { ...expense, paidPeriods };
+        })
+      };
+    }
 
     case "ADD_EXPENSE":
       return { ...state, expenses: [...state.expenses, { id: uid(), ...action.payload }] };
@@ -154,7 +197,7 @@ function reducer(state, action) {
         ...action.payload,
         incomeByPeriod: { ...(action.payload.incomeByPeriod || {}) },
         salaryConfig: { ...initialState.salaryConfig, ...(action.payload.salaryConfig || {}) },
-        fixedExpenses: action.payload.fixedExpenses || [],
+        fixedExpenses: (action.payload.fixedExpenses || []).map((e) => ({ ...e, paidPeriods: e.paidPeriods || {} })) ,
         allocations: { ...initialState.allocations, ...(action.payload.allocations || {}) }
       };
 
@@ -187,7 +230,11 @@ export function FinanceProvider({ children, userKey }) {
       salaryAllTime = months * computeMonthlySalary(state.salaryConfig);
     }
     const otherIncomeAllTime = Object.values(state.incomeByPeriod).reduce((sum, p) => {
-      const salaryPart = isFixedSalary ? 0 : Number(p.salary || 0);
+      const salaryPart = isFixedSalary
+        ? 0
+        : Array.isArray(p.salaryEntries)
+          ? p.salaryEntries.reduce((entrySum, entry) => entrySum + getEntryNet(entry), 0)
+          : Number(p.salary || 0);
       return sum + salaryPart + Number(p.extraIncome || 0);
     }, 0);
     const totalIncomeAllTime = salaryAllTime + otherIncomeAllTime;

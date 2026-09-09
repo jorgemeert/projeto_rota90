@@ -16,7 +16,8 @@ export default function EntryList({
   onRemove,
   renderMeta,
   valueColorClass,
-  categories // opcional: habilita filtro por categoria
+  categories,
+  renderExtraAction
 }) {
   const { state } = useFinance();
   const [confirmId, setConfirmId] = useState(null);
@@ -133,6 +134,7 @@ export default function EntryList({
                 </div>
               ) : (
                 <div className="flex items-center gap-3 shrink-0">
+                  {renderExtraAction && renderExtraAction(item)}
                   <span className={`text-sm font-semibold ${valueColorClass}`}>
                     {formatBRL(item.value, state.hideValues)}
                   </span>
